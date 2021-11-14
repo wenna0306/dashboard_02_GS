@@ -2,12 +2,9 @@ import openpyxl
 import pandas as pd
 import plotly.graph_objects as go
 import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
 from matplotlib.backends.backend_agg import RendererAgg
-from PIL import Image
-from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
 matplotlib.use('agg')
 
 _lock = RendererAgg.lock
