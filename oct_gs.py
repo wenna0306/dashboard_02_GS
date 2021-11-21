@@ -101,26 +101,139 @@ cols_drop = ['Impact', 'Cancel_Status', 'Other_Trades_Required_Date', 'Cost_Cap_
 df3.drop(columns=cols_drop, inplace=True)
 df3 = df3[['Site', 'Building', 'Level', 'Room', 'Building_Trade', 'Trade_Category', 'Type_of_Fault', 'Time_Acknowledged_mins',
            'Time_Site_Reached_mins', 'Time_Work_Started_mins', 'Time_Work_Recovered_mins']]
-bin = [0, 10, 30, 60, np.inf]
-label = ['0-10mins', '10-30mins', '30-60mins', '60-np.inf']
-df3['KPI_For_Responded'] = pd.cut(df3.Time_Acknowledged_mins, bins=bin, labels=label, include_lowest=True)
-df3['KPI_For_Recovered'] = pd.cut(df3.Time_Work_Recovered_mins, bins=bin, labels=label, include_lowest=True)
 
+bin_responded = [0, 10, 30, 60, np.inf]
+label_responded = ['0-10mins', '10-30mins', '30-60mins', '60-np.inf']
 
-st.subheader('KPI Monitoring')
-space01, dataframe01, space02, dataframe02, space03 = st.columns((.1, 1, .1, 1, .1))
+bin_recovered = [0, 60, 240, 480, np.inf]
+label_recovered = ['0-1hr', '1-4hrs', '4-8hrs', '8-np.inf']
+
+df3['KPI_For_Responded'] = pd.cut(df3.Time_Acknowledged_mins, bins=bin_responded, labels=label_responded, include_lowest=True)
+df3['KPI_For_Recovered'] = pd.cut(df3.Time_Work_Recovered_mins, bins=bin_recovered, labels=label_recovered, include_lowest=True)
+
+st.subheader('KPI Monitoring (Responded)')
+space01, dataframe01, space02, dataframe02, space03 = st.columns((.1, 1, .1, 2, .1))
 with dataframe01, _lock:
-    st.markdown('KPI vs Building Trade')
+    st.markdown('KPI (Responded) vs Building Trade')
     st.dataframe(df3.groupby(by='KPI_For_Responded').Building_Trade.value_counts().unstack(level=-1).fillna(0).astype(int).style.highlight_max(
-        axis=0, props='color:white; font-weight:bold; background-color:darkblue;'))
+        axis=0, props='color:#f0833a; font-weight:bold; background-color:dark;'))
 
 with dataframe02, _lock:
-    st.markdown('KPI vs Trade Category')
+    st.markdown('KPI(Responded) vs Trade Category')
     st.dataframe(df3.groupby(by='KPI_For_Responded').Trade_Category.value_counts().unstack(level=0).T.fillna(0).astype(int).style.highlight_max(
-        axis=0, props='color:white; font-weight:bold; background-color:darkblue;'))
+        axis=0, props='color:#f0833a; font-weight:bold; background-color:dark;'))
+
+x_KPI_building_010_Responded = df3.groupby(by='KPI_For_Responded').Building_Trade.value_counts().loc['0-10mins'].index
+x_KPI_building_1030_Responded = df3.groupby(by='KPI_For_Responded').Building_Trade.value_counts().loc['10-30mins'].index
+x_KPI_building_3060_Responded = df3.groupby(by='KPI_For_Responded').Building_Trade.value_counts().loc['30-60mins'].index
+x_KPI_building_60inf_Responded = df3.groupby(by='KPI_For_Responded').Building_Trade.value_counts().loc['60-np.inf'].index
+
+y_KPI_building_010_Responded = df3.groupby(by='KPI_For_Responded').Building_Trade.value_counts().loc['0-10mins'].values
+y_KPI_building_1030_Responded = df3.groupby(by='KPI_For_Responded').Building_Trade.value_counts().loc['10-30mins'].values
+y_KPI_building_3060_Responded = df3.groupby(by='KPI_For_Responded').Building_Trade.value_counts().loc['30-60mins'].values
+y_KPI_building_60inf_Responded = df3.groupby(by='KPI_For_Responded').Building_Trade.value_counts().loc['60-np.inf'].values
+
+x_KPI_category_010_Responded = df3.groupby(by='KPI_For_Responded').Trade_Category.value_counts().loc['0-10mins'].index
+x_KPI_category_1030_Responded = df3.groupby(by='KPI_For_Responded').Trade_Category.value_counts().loc['10-30mins'].index
+x_KPI_category_3060_Responded = df3.groupby(by='KPI_For_Responded').Trade_Category.value_counts().loc['30-60mins'].index
+x_KPI_category_60inf_Responded = df3.groupby(by='KPI_For_Responded').Trade_Category.value_counts().loc['60-np.inf'].index
+
+y_KPI_category_010_Responded = df3.groupby(by='KPI_For_Responded').Trade_Category.value_counts().loc['0-10mins'].values
+y_KPI_category_1030_Responded = df3.groupby(by='KPI_For_Responded').Trade_Category.value_counts().loc['10-30mins'].values
+y_KPI_category_3060_Responded = df3.groupby(by='KPI_For_Responded').Trade_Category.value_counts().loc['30-60mins'].values
+y_KPI_category_60inf_Responded = df3.groupby(by='KPI_For_Responded').Trade_Category.value_counts().loc['60-np.inf'].values
+
+fig_responded_building, fig_responded_category = st.columns([1, 2])
+with fig_responded_building, _lock:
+    fig_responded_building = go.Figure(data=[
+        go.Bar(name='0-10mins', x=x_KPI_building_010_Responded, y=y_KPI_building_010_Responded),
+        go.Bar(name='10-30mins', x=x_KPI_building_1030_Responded, y=y_KPI_building_1030_Responded),
+        go.Bar(name='30-60mins', x=x_KPI_building_3060_Responded, y=y_KPI_building_3060_Responded),
+        go.Bar(name='60-np.inf', x=x_KPI_building_60inf_Responded, y=y_KPI_building_60inf_Responded)
+    ])
+    fig_responded_building.update_xaxes(title_text="Building Trade", tickangle=-45, title_font_color='#a2bffe', showgrid=False, showline=True, linewidth=1, linecolor='#59656d')
+    fig_responded_building.update_yaxes(title_text='Number of Fault', title_font_color='#a2bffe', showgrid=True, gridwidth=0.1, gridcolor='#1f3b4d',
+                       showline=True, linewidth=1, linecolor='#59656d')
+    fig_responded_building.update_layout(barmode='stack', title='KPI Monitoring(Responded) vs Building Trade', plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig_responded_building, use_container_width=True)
+
+with fig_responded_category, _lock:
+    fig_responded_category = go.Figure(data=[
+        go.Bar(name='0-10mins', x=x_KPI_category_010_Responded, y=y_KPI_category_010_Responded),
+        go.Bar(name='10-30mins', x=x_KPI_category_1030_Responded, y=y_KPI_category_1030_Responded),
+        go.Bar(name='30-60mins', x=x_KPI_category_3060_Responded, y=y_KPI_category_3060_Responded),
+        go.Bar(name='60-np.inf', x=x_KPI_category_60inf_Responded, y=y_KPI_category_60inf_Responded)
+    ])
+    fig_responded_category.update_xaxes(title_text="Trade Category", tickangle=-45, title_font_color='#a2bffe',
+                                        showgrid=False, showline=True, linewidth=1, linecolor='#59656d')
+    fig_responded_category.update_yaxes(title_text='Number of Fault', title_font_color='#a2bffe', showgrid=True,
+                                        gridwidth=0.1, gridcolor='#1f3b4d',
+                                        showline=True, linewidth=1, linecolor='#59656d')
+    fig_responded_category.update_layout(barmode='stack', title='KPI Monitoring(Responded) vs Trade Category',
+                                         plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig_responded_category, use_container_width=True)
+
+st.subheader('KPI Monitoring (Recovered)')
+space04, dataframe03, space05, dataframe04, space06 = st.columns((.1, 1, .1, 2, .1))
+with dataframe03, _lock:
+    st.markdown('KPI(Recovered) vs Building Trade')
+    st.dataframe(df3.groupby(by='KPI_For_Recovered').Building_Trade.value_counts().unstack(level=-1).fillna(0).astype(int).style.highlight_max(
+        axis=0, props='color:#f0833a; font-weight:bold; background-color:dark;'))
+
+with dataframe04, _lock:
+    st.markdown('KPI(Recovered) vs Trade Category')
+    st.dataframe(df3.groupby(by='KPI_For_Recovered').Trade_Category.value_counts().unstack(level=0).T.fillna(0).astype(int).style.highlight_max(
+        axis=0, props='color:#f0833a; font-weight:bold; background-color:dark;'))
+
+x_KPI_building_010_recovered = df3.groupby(by='KPI_For_Recovered').Building_Trade.value_counts().loc['0-1hr'].index
+x_KPI_building_1030_recovered = df3.groupby(by='KPI_For_Recovered').Building_Trade.value_counts().loc['1-4hrs'].index
+x_KPI_building_3060_recovered = df3.groupby(by='KPI_For_Recovered').Building_Trade.value_counts().loc['4-8hrs'].index
+x_KPI_building_60inf_recovered = df3.groupby(by='KPI_For_Recovered').Building_Trade.value_counts().loc['8-np.inf'].index
+
+y_KPI_building_010_recovered = df3.groupby(by='KPI_For_Recovered').Building_Trade.value_counts().loc['0-1hr'].values
+y_KPI_building_1030_recovered = df3.groupby(by='KPI_For_Recovered').Building_Trade.value_counts().loc['1-4hrs'].values
+y_KPI_building_3060_recovered = df3.groupby(by='KPI_For_Recovered').Building_Trade.value_counts().loc['4-8hrs'].values
+y_KPI_building_60inf_recovered = df3.groupby(by='KPI_For_Recovered').Building_Trade.value_counts().loc['8-np.inf'].values
+
+x_KPI_category_010_recovered = df3.groupby(by='KPI_For_Recovered').Trade_Category.value_counts().loc['0-1hr'].index
+x_KPI_category_1030_recovered = df3.groupby(by='KPI_For_Recovered').Trade_Category.value_counts().loc['1-4hrs'].index
+x_KPI_category_3060_recovered = df3.groupby(by='KPI_For_Recovered').Trade_Category.value_counts().loc['4-8hrs'].index
+x_KPI_category_60inf_recovered = df3.groupby(by='KPI_For_Recovered').Trade_Category.value_counts().loc['8-np.inf'].index
+
+y_KPI_category_010_recovered = df3.groupby(by='KPI_For_Recovered').Trade_Category.value_counts().loc['0-1hr'].values
+y_KPI_category_1030_recovered = df3.groupby(by='KPI_For_Recovered').Trade_Category.value_counts().loc['1-4hrs'].values
+y_KPI_category_3060_recovered = df3.groupby(by='KPI_For_Recovered').Trade_Category.value_counts().loc['4-8hrs'].values
+y_KPI_category_60inf_recovered = df3.groupby(by='KPI_For_Recovered').Trade_Category.value_counts().loc['8-np.inf'].values
+
+fig_recovered_building, fig_recovered_category = st.columns([1, 2])
+with fig_recovered_building, _lock:
+    fig_recovered_building = go.Figure(data=[
+        go.Bar(name='0-1hr', x=x_KPI_building_010_recovered, y=y_KPI_building_010_recovered),
+        go.Bar(name='1-4hrs', x=x_KPI_building_1030_recovered, y=y_KPI_building_1030_recovered),
+        go.Bar(name='4-8hrs', x=x_KPI_building_3060_recovered, y=y_KPI_building_3060_recovered),
+        go.Bar(name='8-np.inf', x=x_KPI_building_60inf_recovered, y=y_KPI_building_60inf_recovered)
+    ])
+    fig_recovered_building.update_xaxes(title_text="Building Trade", tickangle=-45, title_font_color='#a2bffe', showgrid=False, showline=True, linewidth=1, linecolor='#59656d')
+    fig_recovered_building.update_yaxes(title_text='Number of Fault', title_font_color='#a2bffe', showgrid=True, gridwidth=0.1, gridcolor='#1f3b4d',
+                       showline=True, linewidth=1, linecolor='#59656d')
+    fig_recovered_building.update_layout(barmode='stack', title='KPI Monitoring(Recovered) vs Building Trade', plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig_recovered_building, use_container_width=True)
+
+with fig_recovered_category, _lock:
+    fig_recovered_category = go.Figure(data=[
+        go.Bar(name='0-1hr', x=x_KPI_category_010_recovered, y=y_KPI_category_010_recovered),
+        go.Bar(name='1-4hrs', x=x_KPI_category_1030_recovered, y=y_KPI_category_1030_recovered),
+        go.Bar(name='4-8hrs', x=x_KPI_category_3060_recovered, y=y_KPI_category_3060_recovered),
+        go.Bar(name='8-np.inf', x=x_KPI_category_60inf_recovered, y=y_KPI_category_60inf_recovered)
+    ])
+    fig_recovered_category.update_xaxes(title_text="Trade Category", tickangle=-45, title_font_color='#a2bffe', showgrid=False, showline=True, linewidth=1, linecolor='#59656d')
+    fig_recovered_category.update_yaxes(title_text='Number of Fault', title_font_color='#a2bffe', showgrid=True, gridwidth=0.1, gridcolor='#1f3b4d',
+                       showline=True, linewidth=1, linecolor='#59656d')
+    fig_recovered_category.update_layout(barmode='stack', title='KPI Monitoring(Recovered) vs Trade Category', plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig_recovered_category, use_container_width=True)
 
 st.markdown('---')
-st.subheader('Resource Allocation/Performance Monitoring Based on Building Trade-Tier 1')
+st.subheader('Recovered Fault vs Building Trade-Tier 1 (Resource Allocation/Performance Monitoring)')
 
 df3['Time_Acknowledged_hrs'] = df3.Time_Acknowledged_mins/60
 df3['Time_Site_Reached_hrs'] = df3.Time_Site_Reached_mins/60
@@ -201,7 +314,7 @@ with fig06, _lock:
     st.plotly_chart(fig06, use_container_width=True)
 
 st.markdown('---')
-st.subheader('Resource Allocation/Performance Monitoring Based on Trade Category-Tier 2')
+st.subheader('Recovered Fault vs Trade Category-Tier 2 (Resource Allocation/Performance Monitoring)')
 
 df7 = df4.groupby(by=['Trade_Category']).agg(['count', 'max', 'min', 'mean', 'sum']).sort_values((     'Time_Acknowledged_hrs', 'count'), ascending=False)
 cols_name01 = ['Fault_Acknowledged_count', 'Fault_Acknowledged_max(hrs)', 'Fault_Acknowledged_min(hrs)', 'Fault_Acknowledged_mean(hrs)',
@@ -298,7 +411,7 @@ with fig12, _lock:
     st.plotly_chart(fig12, use_container_width=True)
 
 st.markdown('---')
-st.subheader('Resource Allocation/Performance Monitoring Based on Type of Fault-Tier 3')
+st.subheader('Recovered Fault vs Type of Fault-Tier 3 (Resource Allocation/Performance Monitoring)')
 
 df9 = df4.groupby(by=['Type_of_Fault']).agg(['count', 'max', 'min', 'mean', 'sum']).sort_values((     'Time_Acknowledged_hrs', 'count'), ascending=False)
 cols_name02 = ['Fault_Acknowledged_count', 'Fault_Acknowledged_max(hrs)', 'Fault_Acknowledged_min(hrs)', 'Fault_Acknowledged_mean(hrs)',
@@ -395,7 +508,7 @@ with fig18, _lock:
     st.plotly_chart(fig18, use_container_width=True)
 
 st.markdown('---')
-st.subheader('Fault by Location')
+st.subheader('Recovered Fault by Location')
 ser_fig19 = df4.groupby(['Building']).Type_of_Fault.count().sort_values()
 
 df4.Level = df4.Level.fillna('') #Replace NaN with blank/empty string
